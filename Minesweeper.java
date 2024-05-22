@@ -1,6 +1,10 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
 public class Minesweeper extends JFrame {
@@ -10,6 +14,10 @@ public class Minesweeper extends JFrame {
     private final boolean[][] mines = new boolean[SIZE][SIZE];
     private final int[][] neighbors = new int[SIZE][SIZE];
     private boolean gameOver = false;
+    private boolean firstClick = true;
+
+    private ImageIcon flagIcon;
+    private ImageIcon mineIcon;
 
     public Minesweeper() {
         setTitle("Buscaminas");
@@ -20,13 +28,24 @@ public class Minesweeper extends JFrame {
         gridPanel.setLayout(new GridLayout(SIZE, SIZE));
         add(gridPanel, BorderLayout.CENTER);
 
+        loadIcons();
         initializeGrid(gridPanel);
-        placeMines();
-        calculateNeighbors();
 
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void loadIcons() {
+        try {
+            BufferedImage flagImage = ImageIO.read(new File("flag.png"));
+            BufferedImage mineImage = ImageIO.read(new File("mine.png"));
+            int size = 40; // Size of the buttons
+            flagIcon = new ImageIcon(flagImage.getScaledInstance(size, size, Image.SCALE_SMOOTH));
+            mineIcon = new ImageIcon(mineImage.getScaledInstance(size, size, Image.SCALE_SMOOTH));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void initializeGrid(JPanel gridPanel) {
@@ -68,13 +87,19 @@ public class Minesweeper extends JFrame {
 
     private void handleRightClick(JButton button) {
         if (button.getIcon() == null) {
-            button.setIcon(new ImageIcon("flag.png"));
+            button.setIcon(flagIcon);
         } else {
             button.setIcon(null);
         }
     }
 
     private void handleLeftClick(int row, int col) {
+        if (firstClick) {
+            placeMines(row, col);
+            calculateNeighbors();
+            firstClick = false;
+        }
+
         if (mines[row][col]) {
             revealMines();
             showGameOverDialog(false);
@@ -88,7 +113,7 @@ public class Minesweeper extends JFrame {
         for (int row = 0; row < SIZE; row++) {
             for (int col = 0; col < SIZE; col++) {
                 if (mines[row][col]) {
-                    buttons[row][col].setIcon(new ImageIcon("mine.png"));
+                    buttons[row][col].setIcon(mineIcon);
                 }
             }
         }
@@ -96,7 +121,7 @@ public class Minesweeper extends JFrame {
     }
 
     private void revealCell(int row, int col) {
-        if (row < 0 || row >= SIZE || col < 0 || col >= SIZE || buttons[row][col].isEnabled() == false) {
+        if (row < 0 || row >= SIZE || col < 0 || col >= SIZE || !buttons[row][col].isEnabled()) {
             return;
         }
 
@@ -142,6 +167,7 @@ public class Minesweeper extends JFrame {
 
     private void resetGame() {
         gameOver = false;
+        firstClick = true;
         for (int row = 0; row < SIZE; row++) {
             for (int col = 0; col < SIZE; col++) {
                 buttons[row][col].setEnabled(true);
@@ -151,17 +177,15 @@ public class Minesweeper extends JFrame {
                 neighbors[row][col] = 0;
             }
         }
-        placeMines();
-        calculateNeighbors();
     }
 
-    private void placeMines() {
+    private void placeMines(int initialRow, int initialCol) {
         Random rand = new Random();
         int placedMines = 0;
         while (placedMines < MINES) {
             int row = rand.nextInt(SIZE);
             int col = rand.nextInt(SIZE);
-            if (!mines[row][col]) {
+            if ((row != initialRow || col != initialCol) && !mines[row][col]) {
                 mines[row][col] = true;
                 placedMines++;
             }
