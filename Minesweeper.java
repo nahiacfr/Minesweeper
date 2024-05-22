@@ -19,10 +19,24 @@ public class Minesweeper extends JFrame {
     private ImageIcon flagIcon;
     private ImageIcon mineIcon;
 
+    private JLabel minesLabel;
+    private JLabel timeLabel;
+    private int remainingMines = MINES;
+    private Timer timer;
+    private int elapsedTime = 0;
+
     public Minesweeper() {
         setTitle("Buscaminas");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        minesLabel = new JLabel("Minas: " + remainingMines);
+        timeLabel = new JLabel("Tiempo: 0");
+
+        topPanel.add(minesLabel, BorderLayout.WEST);
+        topPanel.add(timeLabel, BorderLayout.EAST);
+        add(topPanel, BorderLayout.NORTH);
 
         JPanel gridPanel = new JPanel();
         gridPanel.setLayout(new GridLayout(SIZE, SIZE));
@@ -30,6 +44,11 @@ public class Minesweeper extends JFrame {
 
         loadIcons();
         initializeGrid(gridPanel);
+
+        timer = new Timer(1000, e -> {
+            elapsedTime++;
+            timeLabel.setText("Tiempo: " + elapsedTime);
+        });
 
         pack();
         setLocationRelativeTo(null);
@@ -88,9 +107,12 @@ public class Minesweeper extends JFrame {
     private void handleRightClick(JButton button) {
         if (button.getIcon() == null) {
             button.setIcon(flagIcon);
+            remainingMines--;
         } else {
             button.setIcon(null);
+            remainingMines++;
         }
+        minesLabel.setText("Minas: " + remainingMines);
     }
 
     private void handleLeftClick(int row, int col) {
@@ -98,6 +120,7 @@ public class Minesweeper extends JFrame {
             placeMines(row, col);
             calculateNeighbors();
             firstClick = false;
+            timer.start();
         }
 
         if (mines[row][col]) {
@@ -118,6 +141,7 @@ public class Minesweeper extends JFrame {
             }
         }
         gameOver = true;
+        timer.stop();
     }
 
     private void revealCell(int row, int col) {
@@ -168,6 +192,12 @@ public class Minesweeper extends JFrame {
     private void resetGame() {
         gameOver = false;
         firstClick = true;
+        remainingMines = MINES;
+        minesLabel.setText("Minas: " + remainingMines);
+        elapsedTime = 0;
+        timeLabel.setText("Tiempo: " + elapsedTime);
+        timer.stop();
+
         for (int row = 0; row < SIZE; row++) {
             for (int col = 0; col < SIZE; col++) {
                 buttons[row][col].setEnabled(true);
